@@ -1,143 +1,104 @@
-class Game{
-	constructor(ctxSnake, ctxFood, ctxHex){		
-		this.ctxSnake = ctxSnake;	
-		this.ctxFood = ctxFood;
-		this.ctxHex = ctxHex;
-		this.WORLD_SIZE = new Point(4000, 2000);		
-		this.SCREEN_SIZE = new Point(800, 400);
-		this.world = new Point(-1200, -600);						
-		this.snakes = [];		
-		this.foods = [];
-		this.bricks = [];		
-	}
+/**
+ * Game.js
+ * Este arquivo gerencia todos os componentes do jogo, como o jogador,
+ * as cobras controladas por IA e a comida.
+ */
 
-	init(){					
-		this.snakes[0] = new Snake(this.ctxSnake, "Bibhuti", 0);		
-		for(var i=0; i<10; i++) this.addSnake(ut.randomName(), 100);		
-		this.generateFoods(1000);			
-	}
+class Game {
+    constructor(canvasWidth, canvasHeight) {
+        // --- CONFIGURAÇÕES DO MAPA ---
+        // Aqui você pode alterar o tamanho do mundo do jogo.
+        // Aumentei os valores para o dobro do tamanho original.
+        this.worldWidth = 8000; // O valor original era provavelmente 4000
+        this.worldHeight = 4000; // O valor original era provavelmente 2000
 
-	draw(){		
+        // Dimensões do canvas (a área visível do jogo)
+        this.canvasWidth = canvasWidth;
+        this.canvasHeight = canvasHeight;
 
-		//draw world
-		this.drawWorld();
+        // --- COMPONENTES DO JOGO ---
+        // Inicializa o jogador. Supondo que a classe 'Snake' aceite
+        // a posição inicial, cor e nome.
+        this.player = new Snake(this.worldWidth / 2, this.worldHeight / 2, 'blue', 'Player');
 
-		//draw bricks
-		// this.drawBricks();			
+        // Listas para guardar as outras cobras e a comida
+        this.aiSnakes = [];
+        this.foods = [];
 
-		// move yourself
-		if(this.snakes[0].state === 0)
-			this.snakes[0].move();
+        // --- CONFIGURAÇÕES DE JOGO ---
+        this.numAiSnakes = 20; // Aumente este número se o mapa parecer vazio
+        this.numFoods = 200;   // Aumente este número também para preencher o mapa
+    }
 
-		//move other snakes
-		for(var i=1; i<this.snakes.length; i++)
-		if(this.snakes[i].state === 0) this.snakes[i].move(this.snakes[0]);		
+    /**
+     * Inicia o jogo, criando as cobras de IA e a comida.
+     */
+    init() {
+        // Cria as cobras controladas por IA em posições aleatórias
+        for (let i = 0; i < this.numAiSnakes; i++) {
+            const randomX = Math.random() * this.worldWidth;
+            const randomY = Math.random() * this.worldHeight;
+            const randomColor = `hsl(${Math.random() * 360}, 100%, 50%)`; // Gera uma cor aleatória
+            
+            // Supondo que a classe 'SnakeAI' exista no arquivo snakeai.js
+            this.aiSnakes.push(new SnakeAI(randomX, randomY, randomColor, `Bot ${i}`));
+        }
 
-		//draw food
-		for(var i=0; i<this.foods.length; i++) this.foods[i].draw(this.snakes[0]);			
-		
-		//draw Score
-		this.drawScore();
+        // Gera a comida em posições aleatórias
+        for (let i = 0; i < this.numFoods; i++) {
+            const randomX = Math.random() * this.worldWidth;
+            const randomY = Math.random() * this.worldHeight;
 
-		//draw map
-		this.drawMap();
-	}
+            // Supondo que a classe 'Food' exista no arquivo Food.js
+            this.foods.push(new Food(randomX, randomY));
+        }
+    }
 
-	drawWorld(){
-				
-		this.ctxHex.fillStyle = "white";
-		this.ctxHex.fillRect(this.world.x - 2, this.world.y - 2, this.WORLD_SIZE.x+4, this.WORLD_SIZE.y+4);
+    /**
+     * Atualiza o estado de todos os elementos do jogo.
+     * @param {object} mousePosition - A posição atual do mouse.
+     */
+    update(mousePosition) {
+        // Atualiza a posição do jogador com base no mouse
+        this.player.update(mousePosition);
 
-		this.ctxHex.fillStyle = "#17202A";
-		this.ctxHex.fillRect(this.world.x, this.world.y, this.WORLD_SIZE.x, this.WORLD_SIZE.y);
+        // Atualiza todas as cobras de IA
+        // A lógica de movimento delas estaria dentro da classe SnakeAI
+        this.aiSnakes.forEach(snake => {
+            // A IA precisa saber onde está a comida para se mover de forma inteligente
+            snake.update(this.foods); 
+        });
 
-		this.world.x -= this.snakes[0].velocity.x;
-		this.world.y -= this.snakes[0].velocity.y;
-	}
+        // Lógica de colisão, crescimento da cobra, etc.
+        // (Esta parte precisaria ser implementada)
+    }
 
-	drawScore(){
-		var start = new Point(20, 20);
-		for (var i = 0; i < this.snakes.length; i++) {			
-			this.ctxSnake.fillStyle = this.snakes[i].mainColor;
-			this.ctxSnake.font="bold 10px Arial";
-			this.ctxSnake.fillText(this.snakes[i].name + ":" + this.snakes[i].score,
-			start.x-5, start.y +i*15);		
-		}
-	}
+    /**
+     * Desenha todos os elementos do jogo nos seus respectivos canvases.
+     * @param {CanvasRenderingContext2D} snakeCtx - Contexto do canvas das cobras.
+     * @param {CanvasRenderingContext2D} foodCtx - Contexto do canvas da comida.
+     */
+    draw(snakeCtx, foodCtx) {
+        // Limpa os canvases antes de desenhar
+        snakeCtx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+        foodCtx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+        
+        // O truque é desenhar tudo relativo à posição do jogador.
+        // O jogador sempre fica no centro da tela.
+        const offsetX = this.player.x - this.canvasWidth / 2;
+        const offsetY = this.player.y - this.canvasHeight / 2;
 
-	drawMap(){
+        // Desenha o jogador
+        this.player.draw(snakeCtx, offsetX, offsetY);
 
-		this.ctxSnake.globalAlpha = 0.5;
+        // Desenha as cobras de IA
+        this.aiSnakes.forEach(snake => {
+            snake.draw(snakeCtx, offsetX, offsetY);
+        });
 
-		var mapSize = new Point(100, 50);
-		var start = new Point(20, this.SCREEN_SIZE.y-mapSize.y-10);
-		this.ctxSnake.fillStyle = "white";		
-		this.ctxSnake.fillRect(start.x, start.y, mapSize.x,  mapSize.y);
-		this.ctxSnake.fill();
-
-		this.ctxSnake.globalAlpha = 1;
-		
-
-		//draw all player in map	
-		for (var i = 0; i < this.snakes.length; i++) {
-			var playerInMap = new Point(start.x + (mapSize.x/this.WORLD_SIZE.x) * this.snakes[i].pos.x,
-			start.y + (mapSize.y/this.WORLD_SIZE.y) * this.snakes[i].pos.y);
-
-			// console.log(playerInMap);
-			this.ctxSnake.fillStyle = this.snakes[i].mainColor;
-			this.ctxSnake.beginPath();
-			this.ctxSnake.arc(start.x + playerInMap.x, playerInMap.y + 10, 2, 0, 2*Math.PI);
-			this.ctxSnake.fill();
-		}	
-
-		
-	}
-
-	// drawBricks(){
-	// 	var size = 50;		
-	// 	for(var i=0; i<this.bricks.length; i++){			
-	// 		 ut.drawHexagon(this.ctxHex, 22, this.bricks[i].x + size/2, this.bricks[i].y + size/2);	
-	// 		this.bricks[i].x -= this.snakes[0].velocity.x;
-	// 		this.bricks[i].y -= this.snakes[0].velocity.y;
-
-	// 		// this.ctxHex.fillStyle = "#2C3E50";
-	// 		// this.ctxHex.fillRect(this.bricks[i].x + 5, this.bricks[i].y + 5, 40, 40);
-
-	// 		//left
-	// 		if(this.bricks[i].x + size < 0)this.bricks[i].x = this.SCREEN_SIZE.x;
-	// 		//right
-	// 		else if(this.bricks[i].x > this.SCREEN_SIZE.x)this.bricks[i].x = -size;
-	// 		//up
-	// 		else if(this.bricks[i].y + size < 0)this.bricks[i].y = this.SCREEN_SIZE.y;
-	// 		//down
-	// 		else if(this.bricks[i].y > this.SCREEN_SIZE.y)this.bricks[i].y = -size;
-	// 	}
-	// }
-
-	
-	addSnake(name, id){
-
-		this.snakes.push(new SnakeAi(this.ctxSnake, name, id))
-	}
-
-	generateFoods(n){
-		for(var i=0; i<n; i++){			
-			this.foods.push(new Food(this.ctxFood, ut.random(-1200 +  50, 2800 - 50),
-			ut.random(-600 + 50, 1400 - 50)));
-		}
-	}
-
-	// generateBricks(){
-	// 	var size = 50;
-	// 	var inRows = this.SCREEN_SIZE.x/size + 2;
-	// 	var inCols = this.SCREEN_SIZE.y/size + 2;
-	// 	var start = new Point(-size, -size);
-	// 	for(var i=0; i<inRows; i++){
-	// 		for(var j=0; j<inCols; j++){
-	// 			var point = new Point(start.x + i*size, start.y + j*size);				
-	// 			this.bricks.push(point);
-	// 		}
-	// 	}
-	// }
-
+        // Desenha a comida
+        this.foods.forEach(food => {
+            food.draw(foodCtx, offsetX, offsetY);
+        });
+    }
 }
